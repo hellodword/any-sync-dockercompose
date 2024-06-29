@@ -21,6 +21,10 @@ services:
       - "${STORAGE_DIR}:/code/storage"
 
   mongo-1:
+{% if hellodword %}
+    logging:
+      driver: none
+{% endif %}
     depends_on:
       generateconfig-processing:
         condition: service_completed_successfully
@@ -38,6 +42,10 @@ services:
       start_period: 30s
 
   redis:
+{% if hellodword %}
+    logging:
+      driver: none
+{% endif %}
     depends_on:
       generateconfig-processing:
         condition: service_completed_successfully
@@ -96,6 +104,12 @@ services:
     command: ["/bin/any-sync-confapply", "-c", "/etc/any-sync-coordinator/config.yml", "-n", "/etc/any-sync-coordinator/network.yml", "-e"]
 
   any-sync-coordinator:
+{% if hellodword %}
+    logging:
+      driver: "local"
+      options:
+        max-size: "50m"
+{% endif %}
     image: "ghcr.io/anyproto/any-sync-coordinator:${ANY_SYNC_COORDINATOR_VERSION}"
     depends_on:
       generateconfig-processing:
@@ -120,6 +134,12 @@ services:
     restart: on-failure
 
   any-sync-filenode:
+{% if hellodword %}
+    logging:
+      driver: "local"
+      options:
+        max-size: "50m"
+{% endif %}
 {% if fileDevStore %}
     build:
       context: .
@@ -157,6 +177,12 @@ services:
 
 {% for node in nodes %}
   any-sync-node-{{ node }}:
+{% if hellodword %}
+    logging:
+      driver: "local"
+      options:
+        max-size: "50m"
+{% endif %}
     image: "ghcr.io/anyproto/any-sync-node:${ANY_SYNC_NODE_VERSION}"
     depends_on:
       any-sync-coordinator:
@@ -180,6 +206,12 @@ services:
 {% endfor %}
 
   any-sync-consensusnode:
+{% if hellodword %}
+    logging:
+      driver: "local"
+      options:
+        max-size: "50m"
+{% endif %}
     image: "ghcr.io/anyproto/any-sync-consensusnode:${ANY_SYNC_CONSENSUSNODE_VERSION}"
     depends_on:
       any-sync-coordinator:

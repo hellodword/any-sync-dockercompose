@@ -26,8 +26,10 @@ services:
         condition: service_completed_successfully
     image: "mongo:${MONGO_VERSION}"
     command: ["--replSet", "${MONGO_REPLICA_SET}", "--port", "${MONGO_1_PORT}"]
+{% if not hellodword %}
     ports:
       - "${MONGO_1_PORT}:${MONGO_1_PORT}"
+{% endif %}
     volumes:
       - "${STORAGE_DIR}/mongo-1/:/data/db"
     healthcheck:
@@ -42,8 +44,10 @@ services:
     image: "redis/redis-stack-server:${REDIS_VERSION}"
     restart: always
     command: ["redis-server", "--port", "${REDIS_PORT}", "--dir", "/data/", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction", "--protected-mode", "no", "--loadmodule", "/opt/redis-stack/lib/redisbloom.so"]
+{% if not hellodword %}
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
+{% endif %}
     volumes:
       - "${STORAGE_DIR}/redis/:/data/"
     healthcheck:
@@ -61,9 +65,11 @@ services:
       MINIO_ROOT_USER: "${AWS_ACCESS_KEY_ID}"
       MINIO_ROOT_PASSWORD: "${AWS_SECRET_ACCESS_KEY}"
       MC_HOST_minio: http://${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}@minio:${MINIO_PORT}
+{% if not hellodword %}
     ports:
       - "${EXTERNAL_MINIO_PORT}:${MINIO_PORT}"
       - "${EXTERNAL_MINIO_WEB_PORT}:${MINIO_WEB_PORT}"
+{% endif %}
     volumes:
       - "${STORAGE_DIR}/minio:/data"
     healthcheck:
@@ -101,7 +107,9 @@ services:
     ports:
       - "${ANY_SYNC_COORDINATOR_PORT}:${ANY_SYNC_COORDINATOR_PORT}"
       - "${ANY_SYNC_COORDINATOR_QUIC_PORT}:${ANY_SYNC_COORDINATOR_QUIC_PORT}/udp"
+{% if not hellodword %}
       - 8005:8000
+{% endif %}
     volumes:
       - ./etc/any-sync-coordinator/:/etc/any-sync-coordinator/
       - "${STORAGE_DIR}/networkStore/any-sync-coordinator/:/networkStore/"
@@ -131,7 +139,9 @@ services:
     ports:
       - "${ANY_SYNC_FILENODE_PORT}:${ANY_SYNC_FILENODE_PORT}"
       - "${ANY_SYNC_FILENODE_QUIC_PORT}:${ANY_SYNC_FILENODE_QUIC_PORT}/udp"
+{% if not hellodword %}
       - 8004:8000
+{% endif %}
     volumes:
       - ./etc/any-sync-filenode/:/etc/any-sync-filenode/
       - ./etc/.aws:/root/.aws:ro
@@ -154,8 +164,10 @@ services:
     ports:
       - "${ANY_SYNC_NODE_{{ node }}_PORT}:${ANY_SYNC_NODE_{{ node }}_PORT}"
       - "${ANY_SYNC_NODE_{{ node }}_QUIC_PORT}:${ANY_SYNC_NODE_{{ node }}_QUIC_PORT}/udp"
+{% if not hellodword %}
       - 81{{ '%02d' % node | int }}:8080
       - 82{{ '%02d' % node | int }}:8000
+{% endif %}
     volumes:
       - ./etc/any-sync-node-{{ node }}/:/etc/any-sync-node/
       - "${STORAGE_DIR}/any-sync-node-{{ node }}/:/storage/"
@@ -175,7 +187,9 @@ services:
     ports:
       - "${ANY_SYNC_CONSENSUSNODE_PORT}:${ANY_SYNC_CONSENSUSNODE_PORT}"
       - "${ANY_SYNC_CONSENSUSNODE_QUIC_PORT}:${ANY_SYNC_CONSENSUSNODE_QUIC_PORT}/udp"
+{% if not hellodword %}
       - 8006:8000
+{% endif %}
     volumes:
       - ./etc/any-sync-consensusnode/:/etc/any-sync-consensusnode/
       - "${STORAGE_DIR}/networkStore/any-sync-consensusnode/:/networkStore/"
@@ -185,6 +199,7 @@ services:
           memory: 500M
     restart: on-failure
 
+{% if not disableNetcheck %}
   # any-sync-netcheck
   netcheck:
     image: "ghcr.io/anyproto/any-sync-tools:${ANY_SYNC_TOOLS_VERSION}"
@@ -205,3 +220,4 @@ services:
       test: any-sync-netcheck -c /code/storage/docker-generateconfig/nodes.yml 2>&1| grep -P 'netcheck\s+success'
       interval: 60s
       start_period: 5s
+{% endif %}

@@ -1,0 +1,15 @@
+FROM golang:bookworm as builder
+
+WORKDIR /usr/src/app
+
+RUN latest_version=$(curl -s https://api.github.com/repos/anyproto/any-sync-consensusnode/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")') && \
+  git clone --depth=1 -b $latest_version https://github.com/anyproto/any-sync-consensusnode && \
+  cd any-sync-consensusnode && \
+  go mod download -x && go mod verify && \
+  curl -fsSL --output "any-sync-consensusnode-${latest_version}.patch" "https://github.com/hellodword/anytype-all/raw/master/patches/any-sync-consensusnode-${latest_version}.patch" && \
+  git apply "any-sync-consensusnode-${latest_version}.patch" && \
+  go build -x -v -trimpath -ldflags "-s -w" -buildvcs=false -o /usr/local/bin/any-sync-consensusnode -tags dev ./cmd
+
+FROM "ghcr.io/anyproto/any-sync-consensusnode:latest"
+
+COPY --from=builder /usr/local/bin/any-sync-consensusnode /bin/any-sync-consensusnode

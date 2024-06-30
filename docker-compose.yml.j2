@@ -211,8 +211,14 @@ services:
       driver: "local"
       options:
         max-size: "50m"
-{% endif %}
+    build:
+      context: .
+      dockerfile: Dockerfile-consensusnode-hellodword
+    # for fakeDB persistence
+    working_dir: /networkStore
+{% else %}
     image: "ghcr.io/anyproto/any-sync-consensusnode:${ANY_SYNC_CONSENSUSNODE_VERSION}"
+{% endif %}
     depends_on:
       any-sync-coordinator:
         condition: service_started

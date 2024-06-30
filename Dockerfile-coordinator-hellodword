@@ -1,0 +1,15 @@
+FROM golang:bookworm as builder
+
+WORKDIR /usr/src/app
+
+RUN latest_version=$(curl -s https://api.github.com/repos/anyproto/any-sync-coordinator/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")') && \
+  git clone --depth=1 -b $latest_version https://github.com/anyproto/any-sync-coordinator && \
+  cd any-sync-coordinator && \
+  go mod download -x && go mod verify && \
+  curl -fsSL --output "any-sync-coordinator-${latest_version}.patch" "https://github.com/hellodword/anytype-all/raw/master/patches/any-sync-coordinator-${latest_version}.patch" && \
+  git apply "any-sync-coordinator-${latest_version}.patch" && \
+  go build -x -v -trimpath -ldflags "-s -w" -buildvcs=false -o /usr/local/bin/any-sync-coordinator -tags dev ./cmd/coordinator
+
+FROM "ghcr.io/anyproto/any-sync-coordinator:latest"
+
+COPY --from=builder /usr/local/bin/any-sync-coordinator /bin/any-sync-coordinator

@@ -20,6 +20,7 @@ services:
       - ./:/code
       - "${STORAGE_DIR}:/code/storage"
 
+{% if not hellodword %}
   mongo-1:
 {% if hellodword %}
     logging:
@@ -40,6 +41,7 @@ services:
       test: test $$(mongosh --port ${MONGO_1_PORT} --quiet --eval "try {rs.initiate({_id:'${MONGO_REPLICA_SET}',members:[{_id:0,host:\"mongo-1:${MONGO_1_PORT}\"}]})} catch(e) {rs.status().ok}") -eq 1
       interval: 10s
       start_period: 30s
+{% endif %}
 
   redis:
 {% if hellodword %}
@@ -91,6 +93,7 @@ services:
           - "${MINIO_BUCKET}.minio" # <bucket-name>.<endpoint-name>
 {% endif %}
 
+{% if not hellodword %}
   any-sync-coordinator_bootstrap:
     image: "ghcr.io/anyproto/any-sync-coordinator:${ANY_SYNC_COORDINATOR_VERSION}"
     depends_on:
@@ -102,6 +105,7 @@ services:
       - ./etc/any-sync-coordinator/:/etc/any-sync-coordinator/
     restart: "no"
     command: ["/bin/any-sync-confapply", "-c", "/etc/any-sync-coordinator/config.yml", "-n", "/etc/any-sync-coordinator/network.yml", "-e"]
+{% endif %}
 
   any-sync-coordinator:
 {% if hellodword %}
@@ -109,15 +113,23 @@ services:
       driver: "local"
       options:
         max-size: "50m"
-{% endif %}
+    # for any-sync-coordinator.db persistence
+    working_dir: /networkStore
+    build:
+      context: .
+      dockerfile: Dockerfile-coordinator-hellodword
+{% else %}
     image: "ghcr.io/anyproto/any-sync-coordinator:${ANY_SYNC_COORDINATOR_VERSION}"
+{% endif %}
     depends_on:
       generateconfig-processing:
         condition: service_completed_successfully
+{% if not hellodword %}
       mongo-1:
         condition: service_healthy
       any-sync-coordinator_bootstrap:
         condition: service_completed_successfully
+{% endif %}
     ports:
       - "${ANY_SYNC_COORDINATOR_PORT}:${ANY_SYNC_COORDINATOR_PORT}"
       - "${ANY_SYNC_COORDINATOR_QUIC_PORT}:${ANY_SYNC_COORDINATOR_QUIC_PORT}/udp"
@@ -127,6 +139,8 @@ services:
     volumes:
       - ./etc/any-sync-coordinator/:/etc/any-sync-coordinator/
       - "${STORAGE_DIR}/networkStore/any-sync-coordinator/:/networkStore/"
+{% if hellodword %}
+{% endif %}
     deploy:
       resources:
         limits:
@@ -166,9 +180,6 @@ services:
       - ./etc/any-sync-filenode/:/etc/any-sync-filenode/
       - ./etc/.aws:/root/.aws:ro
       - "${STORAGE_DIR}/networkStore/any-sync-filenode/:/networkStore/"
-{% if fileDevStore %}
-      - "${STORAGE_DIR}/fileDevStore:/fileDevStore"
-{% endif %}
     deploy:
       resources:
         limits:

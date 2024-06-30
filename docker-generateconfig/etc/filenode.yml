@@ -8,7 +8,7 @@ s3Store:
     forcePathStyle: true # 'true' for self-hosted S3 Object Storage
 
 fileDevStore:
-    path: /fileDevStore
+    path: /networkStore
 
 redis:
     isCluster: false
